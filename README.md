@@ -14,5 +14,6 @@ This is a tool for replace text.
 4. execute `Notion_text_replace.py`.
 
 ## 免責事項
-本ツールのご利用は自己責任でお願いします。\n
+本ツールのご利用は自己責任でお願いします。
+
 いかなる場合も、当方は一切の責任を負いません。
