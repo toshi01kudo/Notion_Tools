@@ -8,7 +8,7 @@ from selenium.webdriver.common.keys import Keys
 import parameter
 
 ## Parameters - To Be Changed manually: 
-NOTION_PAGE_URL = "https://www.notion.so/input-page-url"
+NOTION_PAGE_URL = "https://www.notion.so/your_notion_page"
 BEFORE_TEXT = "AAA"
 AFTER_TEXT = "ZZZ"
 
@@ -39,11 +39,14 @@ def notion_text_replace(page_url = NOTION_PAGE_URL, before_text = BEFORE_TEXT, a
     element = WebDriverWait(browser.browser, 10).until(
         EC.presence_of_element_located((By.CLASS_NAME, "notion-page-content")) 
     )
+    time.sleep(5)
 
     contents = browser.browser.find_elements_by_css_selector('.notion-page-content .notion-text-block div div .notranslate')
     for line in contents:
         if before_text in line.text:
+            print(line.text)
             replace_text = line.text.replace(before_text, after_text)
+            print(replace_text)
             line.click()
             line.send_keys(Keys.CONTROL + "a")
             line.send_keys(Keys.DELETE)
