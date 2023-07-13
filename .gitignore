@@ -1,3 +1,4 @@
-parameter.py
 __pycache__/
 geckodriver.log
+.env
+.github/
