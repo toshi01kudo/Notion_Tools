@@ -1,47 +1,56 @@
 """ Program for text replacement of Notion """
-import time, gc
-from selenium import webdriver
+import time
+import os
+import logging
+from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-import parameter
+from selenium.common.exceptions import NoSuchElementException
+from selenium_helper import SeleniumBrowser
+import replace_parameters
 
-## Parameters - To Be Changed manually: 
-NOTION_PAGE_URL = "https://www.notion.so/your_notion_page"
-BEFORE_TEXT = "AAA"
-AFTER_TEXT = "ZZZ"
 
-def notion_text_replace(page_url = NOTION_PAGE_URL, before_text = BEFORE_TEXT, after_text = AFTER_TEXT):
-    """ Main function """
-    ## browser for selenium
-    browser = GetSeleniumBrowser()
-    
-    ## Access to Notion
+def notion_text_replace() -> None:
+    """
+    Replace function for Notion
+    """
+    # logging definition
+    logging.basicConfig(level=logging.INFO, format=" %(asctime)s - %(levelname)s - %(message)s")
+    # load parameters
+    load_dotenv()
+
+    page_url = replace_parameters.NOTION_PAGE_URL
+    before_text = replace_parameters.BEFORE_TEXT
+    after_text = replace_parameters.AFTER_TEXT
+
+    # browser for selenium
+    # browser = GetSeleniumBrowser()
+    browser = SeleniumBrowser(
+        headless=False,
+        geckodriver_path=os.getenv("GECKODRIVER_PATH"),
+        browser_setting={
+            "browser_path": os.getenv("FIREFOX_BINARY_PATH"),
+            "browser_profile": os.getenv("FIREFOX_PROFILE_PATH"),
+        },
+    )
+
+    # Access to Notion
     browser.browser.get(page_url)
-    element = WebDriverWait(browser.browser, 10).until(
-        EC.presence_of_element_located((By.ID, "notion-email-input-1")) 
-    )
+    WebDriverWait(browser.browser, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "notion-login")))
     time.sleep(1)
-    ## ID入力
-    adrs_clmn = browser.browser.find_element_by_id("notion-email-input-1")
-    adrs_clmn.send_keys(parameter.Notion_mail)
-    for login_btn in browser.browser.find_elements_by_class_name('notion-focusable'):
-        if login_btn.text == 'メールアドレスでログインする':
-            login_btn.click()
-            break
-    pass_clmn = browser.browser.find_element_by_id("notion-password-input-2")
-    pass_clmn.send_keys(parameter.Notion_pass)
-    for login_btn in browser.browser.find_elements_by_class_name('notion-focusable'):
-        if login_btn.text == 'ログイン':
-            login_btn.click()
-            break
-    element = WebDriverWait(browser.browser, 10).until(
-        EC.presence_of_element_located((By.CLASS_NAME, "notion-page-content")) 
-    )
+    # ID入力
+    notion_login_form_input(browser, "notion-email-input-", os.getenv("NOTION_MAIL"))
+    notion_login_button(browser, "メールアドレスでログインする")
+    notion_login_form_input(browser, "notion-password-input-", os.getenv("NOTION_PASS"))
+    notion_login_button(browser, "ログイン")
+    WebDriverWait(browser.browser, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "notion-page-content")))
     time.sleep(5)
 
-    contents = browser.browser.find_elements_by_css_selector('.notion-page-content .notion-text-block div div .notranslate')
+    contents = browser.browser.find_elements(
+        By.CSS_SELECTOR, ".notion-page-content .notion-text-block div div .notranslate"
+    )
     for line in contents:
         if before_text in line.text:
             print(line.text)
@@ -55,20 +64,40 @@ def notion_text_replace(page_url = NOTION_PAGE_URL, before_text = BEFORE_TEXT, a
     time.sleep(1)
     browser.close_selenium()
 
-class GetSeleniumBrowser:
-    def __init__(self, headless=False):
-        # Option for headless mode
-        options = webdriver.FirefoxOptions()
-        if headless:
-            options.add_argument('--headless')
-        self.browser = webdriver.Firefox(executable_path=parameter.gekodriver_path, options=options)
-        self.browser.implicitly_wait(10) # implicit wait time (secs)
 
-    def close_selenium(self):
-        self.browser.quit()
-        time.sleep(1)
-        del self.browser
-        gc.collect()
+def notion_login_form_input(browser: classmethod, partial_id: str, form_value: str) -> None:
+    """
+    Input form value function during login phase of Notion.
+    Args:
+        browser: selenium-helper class,
+        partial_id: search ID without number,
+        form_value: value to input to the form.
+    """
+    for email_num in range(1, 5):
+        logging.info(f"Try: {email_num}")
+        search_text = partial_id + str(email_num)
+        try:
+            clmn = browser.browser.find_element(By.ID, search_text)
+        except NoSuchElementException:
+            continue
+        clmn.send_keys(form_value)
+        break
+    if clmn is None:
+        raise Exception
+
+
+def notion_login_button(browser: classmethod, text: str) -> None:
+    """
+    Press button function during login phase of Notion.
+    Args:
+        browser: selenium-helper class,
+        text: Button text.
+    """
+    for login_btn in browser.browser.find_elements(By.TAG_NAME, "div"):
+        if login_btn.text == text:
+            login_btn.click()
+            break
+
 
 if __name__ == "__main__":
     notion_text_replace()
