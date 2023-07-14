@@ -36,7 +36,7 @@ jobs:
           echo "ls -a $HOME/.mozilla/firefox/"
           ls -a $HOME/.mozilla/firefox/
           touch $HOME/.mozilla/firefox/profiles.ini
-          echo "fireprofile='$HOME/.mozilla/firefox/profiles.ini'" >> "$GITHUB_ENV"
+          echo "fireprofile=$HOME/.mozilla/firefox/profiles.ini" >> "$GITHUB_ENV"
       - name: run test
         run: |
           pwd
